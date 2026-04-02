@@ -175,7 +175,50 @@ public class GlobalExceptionHandler {
 
 		return buildErrorResponse(HttpStatus.CONFLICT, ex.getMessage(), request.getRequestURI());
 	}
+	
+	@ExceptionHandler(InsufficientStockException.class)
+	public ResponseEntity<ErrorResponse> handleInsufficientStock(InsufficientStockException ex,
+			HttpServletRequest request) {
 
+		return buildErrorResponse(HttpStatus.CONFLICT, ex.getMessage(), request.getRequestURI());
+	}
+	
+	@ExceptionHandler(EmptyCartException.class)
+	public ResponseEntity<ErrorResponse> handleEmptyCart(EmptyCartException ex,
+			HttpServletRequest request) {
+
+		return buildErrorResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), request.getRequestURI());
+	}
+
+	@ExceptionHandler(BadRequestException.class)
+	public ResponseEntity<ErrorResponse> handleBadRequest(BadRequestException ex,
+			HttpServletRequest request) {
+
+		return buildErrorResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), request.getRequestURI());
+	}
+	
+	@ExceptionHandler(BadRequestException.class)
+	public ResponseEntity<ErrorResponse> handleCustomAccessDenied(CustomAccessDeniedException ex,
+			HttpServletRequest request) {
+
+		return buildErrorResponse(HttpStatus.FORBIDDEN, ex.getMessage(), request.getRequestURI());
+	}
+	
+	@ExceptionHandler(ResourceAlreadyExistException.class)
+	public ResponseEntity<ErrorResponse> handleResourceAlreadyExist(ResourceAlreadyExistException ex,
+			HttpServletRequest request) {
+
+		return buildErrorResponse(HttpStatus.FOUND, ex.getMessage(), request.getRequestURI());
+	}
+	
+	@ExceptionHandler(RazorpayOrderException.class)
+	public ResponseEntity<ErrorResponse> handleRazorpayOrder(RazorpayOrderException ex,
+			HttpServletRequest request) {
+
+		return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage(), request.getRequestURI());
+	}
+
+	
 	@ExceptionHandler(Exception.class)
 	public ResponseEntity<ErrorResponse> handleGeneric(Exception ex, HttpServletRequest request) {
 

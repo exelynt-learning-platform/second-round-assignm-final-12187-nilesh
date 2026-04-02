@@ -9,6 +9,8 @@ import com.nv.ecommerce.entity.Order;
 import com.nv.ecommerce.entity.Payment;
 import com.nv.ecommerce.enums.OrderStatus;
 import com.nv.ecommerce.enums.PaymentStatus;
+import com.nv.ecommerce.exception.RazorpayOrderException;
+import com.nv.ecommerce.exception.ResourceAlreadyExistException;
 import com.nv.ecommerce.exception.ResourceNotFoundException;
 import com.nv.ecommerce.repository.OrderRepository;
 import com.nv.ecommerce.repository.PaymentRepository;
@@ -52,7 +54,7 @@ public class PaymentServiceImpl implements PaymentService {
 
 		// 2. Prevent duplicate payment
 		if (paymentRepository.findByOrder(order).isPresent()) {
-			throw new RuntimeException("Payment already exists for this order");
+			throw new ResourceAlreadyExistException("Payment already exists for this order");
 		}
 
 		// 3. Get amount from order
@@ -83,7 +85,7 @@ public class PaymentServiceImpl implements PaymentService {
 					.build();
 
 		} catch (Exception e) {
-			throw new RuntimeException("Failed to create Razorpay order", e);
+			throw new RazorpayOrderException("Failed to create Razorpay order");
 		}
 	}
 

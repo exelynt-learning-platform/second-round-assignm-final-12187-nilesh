@@ -4,6 +4,10 @@ import com.nv.ecommerce.dto.request.OrderRequestDto;
 import com.nv.ecommerce.dto.response.OrderResponseDto;
 import com.nv.ecommerce.entity.*;
 import com.nv.ecommerce.enums.OrderStatus;
+import com.nv.ecommerce.exception.BadRequestException;
+import com.nv.ecommerce.exception.CustomAccessDeniedException;
+import com.nv.ecommerce.exception.EmptyCartException;
+import com.nv.ecommerce.exception.InsufficientStockException;
 import com.nv.ecommerce.exception.ResourceNotFoundException;
 import com.nv.ecommerce.mapper.OrderMapper;
 import com.nv.ecommerce.repository.*;
@@ -42,7 +46,7 @@ public class OrderServiceImpl implements OrderService {
                 .orElseThrow(() -> new ResourceNotFoundException("Cart not found"));
 
         if (cart.getItems().isEmpty()) {
-            throw new RuntimeException("Cart is empty");
+            throw new EmptyCartException("Cart is empty");
         }
 
         //1. Validate stock BEFORE creating order
@@ -51,7 +55,7 @@ public class OrderServiceImpl implements OrderService {
             Product product = cartItem.getProduct();
 
             if (product.getStockQuantity() < cartItem.getQuantity()) {
-                throw new RuntimeException("Insufficient stock for product: " + product.getName());
+                throw new InsufficientStockException("Insufficient stock for product: " + product.getName());
             }
         });
 
@@ -123,12 +127,12 @@ public class OrderServiceImpl implements OrderService {
 
         // Ownership check
         if (!order.getUser().getId().equals(user.getId())) {
-            throw new RuntimeException("Unauthorized to cancel this order");
+            throw new CustomAccessDeniedException("Unauthorized to cancel this order");
         }
 
         //  Prevent cancelling paid orders
         if (order.getStatus() == OrderStatus.PAID) {
-            throw new RuntimeException("Cannot cancel a paid order");
+            throw new BadRequestException("Cannot cancel a paid order");
         }
 
         // 1. Restore stock

@@ -13,13 +13,11 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.stereotype.Service;
 
 
 @Service
 @RequiredArgsConstructor
-@EnableMethodSecurity
 public class ProductServiceImpl implements ProductService {
 
 	private final ProductRepository productRepository;
