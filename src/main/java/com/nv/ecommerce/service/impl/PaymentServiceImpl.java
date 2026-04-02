@@ -30,7 +30,7 @@ public class PaymentServiceImpl implements PaymentService {
 
 	private final OrderRepository orderRepository;
 	private final PaymentRepository paymentRepository;
-	private final RazorpayClient razorpayClient;
+	private RazorpayClient razorpayClient;
 	private final String razorpayKeySecret;
 	private final String razorpayWebhookSecret;
 
