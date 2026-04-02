@@ -7,6 +7,7 @@ import com.nv.ecommerce.enums.OrderStatus;
 import com.nv.ecommerce.exception.BadRequestException;
 import com.nv.ecommerce.exception.CustomAccessDeniedException;
 import com.nv.ecommerce.exception.EmptyCartException;
+import com.nv.ecommerce.exception.HighConcrrencyException;
 import com.nv.ecommerce.exception.InsufficientStockException;
 import com.nv.ecommerce.exception.ResourceNotFoundException;
 import com.nv.ecommerce.mapper.OrderMapper;
@@ -36,71 +37,87 @@ public class OrderServiceImpl implements OrderService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
     
-    @Transactional
     @Override
+    @Transactional
     public OrderResponseDto placeOrder(OrderRequestDto request) {
 
-        User user = getCurrentUser();
+        int retryCount = 3;
 
-        Cart cart = cartRepository.findByUser(user)
-                .orElseThrow(() -> new ResourceNotFoundException("Cart not found"));
+        while (retryCount > 0) {
 
-        if (cart.getItems().isEmpty()) {
-            throw new EmptyCartException("Cart is empty");
+            try {
+
+                User user = getCurrentUser();
+
+                Cart cart = cartRepository.findByUser(user)
+                        .orElseThrow(() -> new ResourceNotFoundException("Cart not found"));
+
+                if (cart.getItems().isEmpty()) {
+                    throw new EmptyCartException("Cart is empty");
+                }
+
+                // 1. Validate stock
+                cart.getItems().forEach(cartItem -> {
+
+                    Product product = cartItem.getProduct();
+
+                    if (product.getStockQuantity() < cartItem.getQuantity()) {
+                        throw new InsufficientStockException(
+                                "Insufficient stock for product: " + product.getName());
+                    }
+                });
+
+                // 2. Create Order
+                Order order = new Order();
+                order.setUser(user);
+                order.setStatus(OrderStatus.CREATED);
+                order.setShippingAddress(request.getShippingAddress());
+
+                // 3. Convert CartItems -> OrderItems
+                List<OrderItem> orderItems = cart.getItems().stream().map(cartItem -> {
+
+                    Product product = cartItem.getProduct();
+
+                    // Stock reduction (version will be checked here)
+                    product.setStockQuantity(
+                            product.getStockQuantity() - cartItem.getQuantity()
+                    );
+
+                    OrderItem item = new OrderItem();
+                    item.setOrder(order);
+                    item.setProduct(product);
+                    item.setQuantity(cartItem.getQuantity());
+                    item.setPrice(cartItem.getPrice());
+
+                    return item;
+
+                }).toList();
+
+                order.setItems(orderItems);
+
+                // 4. Calculate total
+                BigDecimal totalAmount = orderItems.stream()
+                        .map(item -> item.getPrice()
+                                .multiply(BigDecimal.valueOf(item.getQuantity())))
+                        .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                order.setTotalAmount(totalAmount);
+
+                // 5. Save order
+                Order savedOrder = orderRepository.save(order);
+
+                // 6. Clear cart
+                cart.getItems().clear();
+                cartRepository.save(cart);
+
+                return OrderMapper.toResponse(savedOrder);
+
+            } catch (org.springframework.orm.ObjectOptimisticLockingFailureException e) {
+                retryCount--;
+            }
         }
 
-        //1. Validate stock BEFORE creating order
-        cart.getItems().forEach(cartItem -> {
-
-            Product product = cartItem.getProduct();
-
-            if (product.getStockQuantity() < cartItem.getQuantity()) {
-                throw new InsufficientStockException("Insufficient stock for product: " + product.getName());
-            }
-        });
-
-        // 2. Create Order
-        Order order = new Order();
-        order.setUser(user);
-        order.setStatus(OrderStatus.CREATED);
-        order.setShippingAddress(request.getShippingAddress());
-
-        // 3. Convert CartItems - > OrderItems
-        List<OrderItem> orderItems = cart.getItems().stream().map(cartItem -> {
-
-            Product product = cartItem.getProduct();
-
-            // Reduce stock
-            product.setStockQuantity(product.getStockQuantity() - cartItem.getQuantity());
-
-            OrderItem item = new OrderItem();
-            item.setOrder(order);
-            item.setProduct(product);
-            item.setQuantity(cartItem.getQuantity());
-            item.setPrice(cartItem.getPrice());
-
-            return item;
-
-        }).toList();
-
-        order.setItems(orderItems);
-
-        // 4. Calculate total
-        BigDecimal totalAmount = orderItems.stream()
-                .map(item -> item.getPrice()
-                        .multiply(BigDecimal.valueOf(item.getQuantity())))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        order.setTotalAmount(totalAmount);
-
-        // 5. Save order
-        Order savedOrder = orderRepository.save(order);
-
-        // 6. Clear cart
-        cart.getItems().clear();
-        cartRepository.save(cart);
-
-        return OrderMapper.toResponse(savedOrder);
+        throw new HighConcrrencyException("High concurrency issue. Please try again.");
     }
 
     // GET USER ORDERS

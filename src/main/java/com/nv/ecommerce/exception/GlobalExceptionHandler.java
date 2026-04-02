@@ -197,7 +197,7 @@ public class GlobalExceptionHandler {
 		return buildErrorResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), request.getRequestURI());
 	}
 	
-	@ExceptionHandler(BadRequestException.class)
+	@ExceptionHandler(CustomAccessDeniedException.class)
 	public ResponseEntity<ErrorResponse> handleCustomAccessDenied(CustomAccessDeniedException ex,
 			HttpServletRequest request) {
 
@@ -213,6 +213,13 @@ public class GlobalExceptionHandler {
 	
 	@ExceptionHandler(RazorpayOrderException.class)
 	public ResponseEntity<ErrorResponse> handleRazorpayOrder(RazorpayOrderException ex,
+			HttpServletRequest request) {
+
+		return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage(), request.getRequestURI());
+	}
+	
+	@ExceptionHandler(HighConcrrencyException.class)
+	public ResponseEntity<ErrorResponse> handleHighConcrrency(HighConcrrencyException ex,
 			HttpServletRequest request) {
 
 		return buildErrorResponse(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage(), request.getRequestURI());

@@ -2,10 +2,13 @@ package com.nv.ecommerce.service.impl;
 
 import com.nv.ecommerce.dto.response.CartResponseDto;
 import com.nv.ecommerce.entity.*;
+import com.nv.ecommerce.exception.InsufficientStockException;
 import com.nv.ecommerce.exception.ResourceNotFoundException;
 import com.nv.ecommerce.mapper.CartMapper;
 import com.nv.ecommerce.repository.*;
 import com.nv.ecommerce.service.CartService;
+
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -43,24 +46,48 @@ public class CartServiceImpl implements CartService {
 
     // ADD TO CART
     @Override
+    @Transactional
     public void addToCart(Long productId, int quantity) {
 
+        // 1. Validate quantity
         if (quantity <= 0) {
             throw new IllegalArgumentException("Quantity must be greater than 0");
         }
 
+        // 2. Get current user & cart
         User user = getCurrentUser();
         Cart cart = getOrCreateCart(user);
 
+        // 3. Fetch product
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found"));
 
+        // 4. Check existing cart item
         CartItem cartItem = cartItemRepository.findByCartAndProduct(cart, product)
                 .orElse(null);
 
         if (cartItem != null) {
-            cartItem.setQuantity(cartItem.getQuantity() + quantity);
+
+            int updatedQuantity = cartItem.getQuantity() + quantity;
+
+            // STOCK VALIDATION 
+            if (product.getStockQuantity() < updatedQuantity) {
+                throw new InsufficientStockException(
+                        "Only " + product.getStockQuantity() + " items available in stock"
+                );
+            }
+
+            cartItem.setQuantity(updatedQuantity);
+
         } else {
+
+            // STOCK VALIDATION (IMPORTANT)
+            if (product.getStockQuantity() < quantity) {
+                throw new InsufficientStockException(
+                        "Only " + product.getStockQuantity() + " items available in stock"
+                );
+            }
+
             cartItem = CartItem.builder()
                     .cart(cart)
                     .product(product)
@@ -71,6 +98,7 @@ public class CartServiceImpl implements CartService {
             cart.getItems().add(cartItem);
         }
 
+        // 5. Save
         cartItemRepository.save(cartItem);
     }
 
