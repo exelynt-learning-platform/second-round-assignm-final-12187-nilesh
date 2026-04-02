@@ -1,13 +1,12 @@
 package com.nv.ecommerce.controller;
 
+import com.nv.ecommerce.dto.request.CartItemRemoveRequest;
+import com.nv.ecommerce.dto.request.CartRequestDto;
 import com.nv.ecommerce.dto.request.CartUpdateRequestDto;
 import com.nv.ecommerce.dto.response.ApiResponse;
 import com.nv.ecommerce.dto.response.CartResponseDto;
 import com.nv.ecommerce.service.CartService;
-
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,11 +21,9 @@ public class CartController {
 
 	// ADD TO CART
 	@PostMapping("/add")
-	public ResponseEntity<ApiResponse<Void>> addToCart(
-			@RequestParam @NotNull(message = "Product ID is required") Long productId,
-			@RequestParam @Min(value = 1, message = "Quantity must be at least 1") int quantity) {
+	public ResponseEntity<ApiResponse<Void>> addToCart(@Valid @RequestBody CartRequestDto cartRequestDto) {
 
-		cartService.addToCart(productId, quantity);
+		cartService.addToCart(cartRequestDto.getProductId(), cartRequestDto.getQuantity());
 
 		ApiResponse<Void> response = new ApiResponse<>();
 		response.setStatus(HttpStatus.OK.value());
@@ -52,10 +49,9 @@ public class CartController {
 
 	// REMOVE ITEM FROM CART
 	@DeleteMapping("/remove")
-	public ResponseEntity<ApiResponse<Void>> removeFromCart(
-			@RequestParam @NotNull(message = "Product ID is required") Long productId) {
+	public ResponseEntity<ApiResponse<Void>> removeFromCart( @Valid @RequestBody CartItemRemoveRequest cartItemRemoveRequest) {
 
-		cartService.removeFromCart(productId);
+		cartService.removeFromCart(cartItemRemoveRequest.getProductId());
 
 		ApiResponse<Void> response = new ApiResponse<>();
 		response.setStatus(HttpStatus.OK.value());
