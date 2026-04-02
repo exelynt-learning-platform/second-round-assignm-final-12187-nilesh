@@ -114,6 +114,7 @@ public class CartServiceImpl implements CartService {
 
     // REMOVE ITEM
     @Override
+    @Transactional
     public void removeFromCart(Long productId) {
 
         User user = getCurrentUser();
@@ -132,6 +133,7 @@ public class CartServiceImpl implements CartService {
 
     // CLEAR CART
     @Override
+    @Transactional
     public void clearCart() {
 
         User user = getCurrentUser();
@@ -143,6 +145,7 @@ public class CartServiceImpl implements CartService {
     }
     
     @Override
+    @Transactional
     public void updateCart(Long productId, int quantity) {
 
         User user = getCurrentUser();
