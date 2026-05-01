@@ -25,16 +25,17 @@ public class SecurityConfig {
 
 		http.csrf(csrf -> csrf.disable())
 				.authorizeHttpRequests(auth -> auth
-				        .requestMatchers("/api/auth/**", "api/public/**" , "api/payments/webhook").permitAll()
-				        
-				        // ADMIN only
-				        .requestMatchers("/api/admin/**").hasRole("ADMIN")
-				        
-				        // USER + ADMIN
-				        .requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN")
-				        
-				        .anyRequest().authenticated()
-				)
+						.requestMatchers("/api/auth/**", "api/public/**", "api/payments/webhook", "/swagger-ui/**",
+								"/v3/api-docs/**", "/api/products-list")
+						.permitAll()
+
+						// ADMIN only
+						.requestMatchers("/api/admin/**").hasRole("ADMIN")
+
+						// USER + ADMIN
+						.requestMatchers("/api/user/**").hasAnyRole("USER", "ADMIN")
+
+						.anyRequest().authenticated())
 				.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
 		return http.build();

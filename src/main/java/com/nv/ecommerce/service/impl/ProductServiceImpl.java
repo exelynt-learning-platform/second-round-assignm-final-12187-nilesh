@@ -8,6 +8,7 @@ import com.nv.ecommerce.mapper.ProductMapper;
 import com.nv.ecommerce.repository.ProductRepository;
 import com.nv.ecommerce.service.ProductService;
 import lombok.RequiredArgsConstructor;
+import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -21,6 +22,8 @@ import org.springframework.stereotype.Service;
 public class ProductServiceImpl implements ProductService {
 
 	private final ProductRepository productRepository;
+	
+	private Long id;
 
 	// ADMIN ONLY --- fine grained check for role
 	@Override
@@ -84,5 +87,19 @@ public class ProductServiceImpl implements ProductService {
 		}
 
 		productRepository.deleteById(id);
+	}
+
+
+	@Override
+	public List<ProductResponseDto> addProducts(List<ProductRequestDto> request) {
+		
+		List<Product> list = request.stream().map( product -> ProductMapper.toEntity(product)).toList();
+		
+		
+		List<Product> saveprodList = productRepository.saveAll(list);
+		
+		List<ProductResponseDto> productResponseList = saveprodList.stream().map(product -> ProductMapper.toResponse(product)).toList();
+		
+		return productResponseList;
 	}
 }

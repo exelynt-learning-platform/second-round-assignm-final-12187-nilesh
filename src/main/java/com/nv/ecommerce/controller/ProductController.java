@@ -7,6 +7,9 @@ import com.nv.ecommerce.service.ProductService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
+
+import java.util.List;
+
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +23,20 @@ import org.springframework.web.bind.annotation.*;
 public class ProductController {
 
 	private final ProductService productService;
+	
+	@PostMapping("/products-list")
+	public ResponseEntity<ApiResponse<ProductResponseDto>> addProductList(
+			@Valid @RequestBody List<ProductRequestDto> request) {
+
+		productService.addProducts(request);
+
+		ApiResponse<ProductResponseDto> response = new ApiResponse<>();
+		response.setStatus(HttpStatus.CREATED.value());
+		response.setMessage("Product list added successfully.");
+		response.setData(null);
+
+		return ResponseEntity.status(HttpStatus.CREATED).body(response);
+	}
 
 	@PostMapping("/products")
 	public ResponseEntity<ApiResponse<ProductResponseDto>> createProduct(

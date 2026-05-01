@@ -7,6 +7,7 @@ import com.nv.ecommerce.dto.response.RazorpayOrderCreateResponse;
 import com.nv.ecommerce.dto.response.RazorpayPaymentVerifyResponse;
 import com.nv.ecommerce.entity.Order;
 import com.nv.ecommerce.entity.Payment;
+import com.nv.ecommerce.entity.User;
 import com.nv.ecommerce.enums.OrderStatus;
 import com.nv.ecommerce.enums.PaymentStatus;
 import com.nv.ecommerce.exception.RazorpayOrderException;
@@ -14,6 +15,7 @@ import com.nv.ecommerce.exception.ResourceAlreadyExistException;
 import com.nv.ecommerce.exception.ResourceNotFoundException;
 import com.nv.ecommerce.repository.OrderRepository;
 import com.nv.ecommerce.repository.PaymentRepository;
+import com.nv.ecommerce.repository.UserRepository;
 import com.nv.ecommerce.service.PaymentService;
 import com.nv.ecommerce.util.RazorpaySignatureUtil;
 import com.razorpay.RazorpayClient;
@@ -22,6 +24,8 @@ import jakarta.transaction.Transactional;
 
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 
@@ -33,15 +37,18 @@ public class PaymentServiceImpl implements PaymentService {
 	private final RazorpayClient razorpayClient;
 	private final String razorpayKeySecret;
 	private final String razorpayWebhookSecret;
+	private final UserRepository userRepository;
 
 	public PaymentServiceImpl(OrderRepository orderRepository, PaymentRepository paymentRepository,
 			RazorpayClient razorpayClient, @Value("${razorpay.key-secret}") String razorpayKeySecret,
-			@Value("${razorpay.webhook-secret}") String razorpayWebhookSecret) {
+			@Value("${razorpay.webhook-secret}") String razorpayWebhookSecret, UserRepository userRepository) {
 		this.orderRepository = orderRepository;
 		this.paymentRepository = paymentRepository;
 		this.razorpayClient = razorpayClient;
 		this.razorpayKeySecret = razorpayKeySecret;
 		this.razorpayWebhookSecret = razorpayWebhookSecret;
+		this.userRepository = userRepository;
+		
 	}
 
 	@Override
@@ -143,13 +150,22 @@ public class PaymentServiceImpl implements PaymentService {
 	@Override
 	public PaymentResponseDto getPaymentDetails(Long orderId) {
 
-		Order order = orderRepository.findById(orderId)
-				.orElseThrow(() -> new ResourceNotFoundException("Order not found"));
+	    // Get logged-in user
+	    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+	    String email = authentication.getName();
 
-		Payment payment = paymentRepository.findByOrder(order)
-				.orElseThrow(() -> new ResourceNotFoundException("Payment not found"));
+	    User user = userRepository.findByUsername(email)
+	            .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-		return mapToDto(payment);
+	    // Fetch order only if it belongs to user
+	    Order order = orderRepository.findByIdAndUser(orderId, user)
+	            .orElseThrow(() -> new ResourceNotFoundException("Order not found for this user"));
+
+	    // Fetch payment
+	    Payment payment = paymentRepository.findByOrder(order)
+	            .orElseThrow(() -> new ResourceNotFoundException("Payment not found"));
+
+	    return mapToDto(payment);
 	}
 
 	private PaymentResponseDto mapToDto(Payment payment) {

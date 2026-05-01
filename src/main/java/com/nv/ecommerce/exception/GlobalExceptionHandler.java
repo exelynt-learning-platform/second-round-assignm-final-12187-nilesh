@@ -76,15 +76,6 @@ public class GlobalExceptionHandler {
 		return buildErrorResponse(HttpStatus.BAD_REQUEST, message, request.getRequestURI());
 	}
 
-	@ExceptionHandler(MissingRequestHeaderException.class)
-	public ResponseEntity<ErrorResponse> handleMissingRequestHeader(MissingRequestHeaderException ex,
-			HttpServletRequest request) {
-
-		String message = "Required header '" + ex.getHeaderName() + "' is missing";
-
-		return buildErrorResponse(HttpStatus.BAD_REQUEST, message, request.getRequestURI());
-	}
-
 	@ExceptionHandler(MethodArgumentTypeMismatchException.class)
 	public ResponseEntity<ErrorResponse> handleMethodArgumentTypeMismatch(MethodArgumentTypeMismatchException ex,
 			HttpServletRequest request) {
